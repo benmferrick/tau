@@ -18,8 +18,8 @@ import (
 	"github.com/taubyte/utils/id"
 )
 
-// create or fetch a universe
-func New(config UniverseConfig) *Universe {
+// create or fetch a universe based on "config" file
+func New(config UniverseConfig) *Universe {                                 
 	// see if we have a ticket
 	id := id.Generate()
 	if len(config.Id) > 0 {
@@ -29,11 +29,13 @@ func New(config UniverseConfig) *Universe {
 	universesLock.Lock()
 	defer universesLock.Unlock()
 
+	//this chunk will return the universe based on the config file if it already exists
 	u, exists := universes[config.Name]
 	if exists {
 		return u
 	}
 
+	//declares values of this universe "u", sets some of them based on config file
 	u = &Universe{
 		name:      config.Name,
 		id:        id,
@@ -54,6 +56,7 @@ func New(config UniverseConfig) *Universe {
 	}
 	u.ctx, u.ctxC = context.WithCancel(multiverseCtx)
 
+	//if config specifies to do so, set root of Universe "u" to the cached root
 	if config.KeepRoot {
 		cacheFolder, err := getCacheFolder()
 		if err != nil {
@@ -61,7 +64,7 @@ func New(config UniverseConfig) *Universe {
 		}
 
 		u.root = path.Join(cacheFolder, "universe-"+u.id)
-	} else {
+	} else { //set default root if not
 		u.root = "/tmp/universe-" + u.id
 	}
 
@@ -70,6 +73,7 @@ func New(config UniverseConfig) *Universe {
 		return nil
 	}
 
+	//sets value in "universes" under name of this config to this Universe "u"
 	universes[config.Name] = u
 
 	// add an elder node

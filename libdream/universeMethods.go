@@ -18,32 +18,38 @@ import (
 	peer "github.com/taubyte/p2p/peer"
 )
 
+//this method returns the "name" of a Universe type, which is a string
 func (u *Universe) Name() string {
 	return u.name
 }
 
+//this method returns "all" for a Universe type, which is a []peer.Node
 func (u *Universe) All() []peer.Node {
 	return u.all
 }
 
+//this method will take an inputted string "id", returns "nil" if not there, returns node that matches the "id" if present
 func (u *Universe) Lookup(id string) (*NodeInfo, bool) {
 	u.lock.RLock()
 	node, exist := u.lookups[id]
 	u.lock.RUnlock()
-	if !exist {
+	if !exist { //checks if the node matching "id" exists in this Universe
 		return nil, false
 	}
 	return node, true
 }
 
+//this method return string "root" for Universe type
 func (u *Universe) Root() string {
 	return u.root
 }
 
+//this method return context "Context" for Universe type
 func (u *Universe) Context() context.Context {
 	return u.ctx
 }
 
+//this method "meshes" or combines a new node(s) to existing in a Universe type, no return
 func (u *Universe) Mesh(newNodes ...peer.Node) {
 	ctx, ctxC := context.WithTimeout(u.ctx, MeshTimeout)
 	defer ctxC()
@@ -75,14 +81,17 @@ func (u *Universe) Mesh(newNodes ...peer.Node) {
 	u.lock.Unlock()
 }
 
+//this method returns seer.Service() type of a Universe type if exists, "nil" otherwise
 func (u *Universe) Seer() seer.Service {
+	//this both sets "ok" to the presense or lack of seer.Service and ret to the actual type to return
 	ret, ok := first[seer.Service](u, u.service["seer"].nodes)
-	if !ok {
+	if !ok { //checks if exists
 		return nil
 	}
 	return ret
 }
 
+//returns string "pid" for a seer.Service type of a Universe type
 func (u *Universe) SeerByPid(pid string) (seer.Service, bool) {
 	return byId[seer.Service](u, u.service["seer"].nodes, pid)
 }
@@ -189,34 +198,36 @@ func (u *Universe) ListNumber(name string) int {
 	return len(u.service[name].nodes)
 }
 
+//this method returns errors 
 func (u *Universe) Kill(name string) error {
 	var isService bool
-	for _, service := range commonSpecs.Protocols {
-		if name == service {
+	for _, service := range commonSpecs.Protocols { //checks in input "name" matches any in the commonSpecs.Protocols list
+		if name == service { //if there is a match "isService" set to true
 			isService = true
 			break
 		}
 	}
 
-	if isService {
-		ids, err := u.GetServicePids(name)
-		if err != nil {
+	if isService { //if match was found above
+		ids, err := u.GetServicePids(name) //gets service pid based on name, and checks if exist
+		if err != nil { //return the error if exists
 			return err
 		}
-		if len(ids) == 0 {
+		if len(ids) == 0 { //if error does not exist, return killing failed due to not existing
 			return fmt.Errorf("killing %s failed with: does not exist", name)
 		}
 
 		return u.killServiceByNameId(name, ids[0])
 
-	} else {
+	} else { //in case of match not being found above
 		u.lock.RLock()
-		simple, exist := u.simples[name]
+		simple, exist := u.simples[name] //checks if this "name" exists in the "simples" array for this universe
 		u.lock.RUnlock()
-		if !exist {
+		if !exist { //if it does not exists, return failed
 			return fmt.Errorf("killing %s failed with: does not exist", name)
 		}
 
+		//returns the error from the simple array if exists
 		return u.killSimpleByNameId(name, simple.ID().Pretty())
 	}
 }
